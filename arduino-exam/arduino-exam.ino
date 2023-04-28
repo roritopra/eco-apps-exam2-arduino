@@ -16,92 +16,81 @@ int actuatorValue = 0;
 int previousValue = 0;
 
 void setup() {
-  // put your setup code here, to run once:
-
-
-/*___________________________________________
-
-1) Set the mode for each Pin.
-_____________________________________________ */ 
+  pinMode(POTEN_PIN, INPUT);
+  pinMode(PHOTO_PIN, INPUT);
+  pinMode(btn_A_PIN, INPUT);
+  pinMode(btn_B_PIN, INPUT);
   
-  
+  for (int i = 0; i < sizeof(myLEDs)/sizeof(myLEDs[0]); i++) {
+    pinMode(myLEDs[i], OUTPUT);
+  }
   Serial.begin(9600); 
-
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-   if(Serial.available() > 0) {
-    receivingData();
-  } else {
-    sendingData();
-  }
+  // lee el valor del potenciómetro y el estado de los botones
+  actuatorValue = analogRead(POTEN_PIN);
+  btn_A_value = digitalRead(btn_A_PIN);
+  btn_B_value = digitalRead(btn_B_PIN);
   
+  // envía los datos por el puerto serie
+  sendingData();
+  
+  // espera un tiempo antes de volver a leer los datos
   delay(100);
-  
 }
+
+/*___________________________________________
+Envía los datos por el puerto serie
+_____________________________________________ */ 
 
 void sendingData() {
-  
-  /*___________________________________________
-
-2) Read the value of each pin below
-_____________________________________________ */ 
-
-  
-    
-  if (previousValue != actuatorValue) {
+  if (previousValue != actuatorValue || previous_btn_A_value != btn_A_value || previous_btn_B_value != btn_B_value) {
     sendSerialMessage(actuatorValue, btn_A_value, btn_B_value);
     previousValue = actuatorValue;
-  }
-
-  if (previous_btn_A_value != btn_A_value) {
-    sendSerialMessage(actuatorValue, btn_A_value, btn_B_value);
     previous_btn_A_value = btn_A_value;
-  }
-
-    if (previous_btn_B_value != btn_B_value) {
-    sendSerialMessage(actuatorValue, btn_A_value, btn_B_value);
     previous_btn_B_value = btn_B_value;
   }
-
-  delay(100);
 }
 
 /*___________________________________________
-
-3) Print the value of the actuator and the value of each button.
-
-Example: 
-Serial.print(value);
-Serial.print(' ');
-Serial.println();
+Envía el mensaje por el puerto serie
 _____________________________________________ */ 
 
-void sendSerialMessage(int actuatorValue, int btn_A_value, int btn_B_value) {
-
-  
+void sendSerialMessage(int POTEN_PIN, int btn_A_value, int btn_B_value) {
+  Serial.print(btn_A_value);
+  Serial.print(' ');
+  Serial.print(btn_B_value);
+  Serial.print(' ');
+  Serial.print(POTEN_PIN);
+  Serial.print(' ');
+  Serial.println();
 }
 
 /*___________________________________________
-
-4) Receive the messages sended by the Game.
-S is for scoring: If you score a point, both leds should turn on and off
-L is for loosing: If you loose, both leds should turn on
+Recibe los mensajes enviados por el Game
+S es para scoring: Si marcas un punto, ambas luces deben encender y apagar
+L es para perder: Si pierdes, ambas luces deben encender
 _____________________________________________ */ 
 
 void receivingData() {
   char inByte = Serial.read();
 
-
-
   switch(inByte){
     case 'S':
-    
+      // Enciende y apaga las luces 5 y 6
+      digitalWrite(myLEDs[0], HIGH);
+      digitalWrite(myLEDs[1], HIGH);
+      delay(1000);
+      digitalWrite(myLEDs[0], LOW);
+      digitalWrite(myLEDs[1], LOW);
       break;
     case 'L':
-
+      // Enciende las luces 5 y 6
+      digitalWrite(myLEDs[0], HIGH);
+      digitalWrite(myLEDs[1], HIGH);
       break;
   }
   Serial.flush();
 }
+

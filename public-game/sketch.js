@@ -27,7 +27,7 @@ function setup() {
         height: 25,
         block: false
     }
-
+    socket.emit('orderForArduino','S');
 }
 
 function draw() {
@@ -67,8 +67,6 @@ function renderScore() {
         fill(255, 0, 0);
         textSize(50)
         text(`GAME OVER`, windowWidth / 2, windowHeight / 2)
-
-
     }
 }
 
@@ -130,55 +128,54 @@ function gameState() {
     if (ball.previousBlockValue !== ball.block) {
         gameResult()
         ball.previousBlockValue = ball.block;
-      }
+    }
 }
 
 async function getFinalScore() {
     const getInfo = await fetch('/final-score')
     const data = await getInfo.json()
     score = data.content
-}
-
-/*___________________________________________
-
-1) Include the socket method to listen to events and use the data:
-
-1.1. Change the player position base on the potentiometer value. The highest value (1023) of the potentiometer should be the window width.
-
-1.2. Increase the ball's speed each time the user press the button B
-
-1.2. Reduce player's width each time the user press the button A
-_____________________________________________ */
-
-socket.on('arduino-message', (arduinoMessages) => {
-
-    //
+    }
     
-})
-
-/*___________________________________________
-
-2) Include the fetch method to POST each time the player scores a point and it should send a char to ARDUINO in order to turn on and off the lights.
-
-It should send an "S" char to the ARDUINO
-_____________________________________________ */
-
-async function sendScore(point) {
-
-    //
+    // 1) Include the socket method to listen to events and use the data:
+    socket.on('arduino-message', (arduinoMessage) => {
+    console.log(arduinoMessage);
+    let { actionA, actionB, signal } = arduinoMessage;
+    player.y = actionA;
+    player.width -= actionB;
+    player.x = signal * (window.innerWidth / 1023);
+    if (buttonBPressed) {
+    ball.speed++;
+    }
+    })
     
-    await fetch('/score', request)
-}
-
-
-/*___________________________________________
-
-3) Include the fetch method to POST when the game is over and turn on the lights by sending the "L" char
-_____________________________________________ */
-
-async function gameResult() {
+    function mouseClicked(){
+    socket.emit('orderForArduino', 'S');
+    }
     
-    //
-
-    await fetch('/game-over', request)
-}
+    // 2) Include the fetch method to POST each time the player scores a point and it should send a char to ARDUINO in order to turn on and off the lights.
+    async function sendScore(point) {
+    console.log('NORMAL POST');
+    const request = {
+    method: 'POST',
+    headers: {
+    'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ score })
+    }
+    await fetch('/score', request);
+    socket.emit('orderForArduino', 'S');
+    }
+    
+    // 3) Include the fetch method to POST when the game is over and turn on the lights by sending the "L" char
+    async function gameResult() {
+    const request = {
+    method: 'POST',
+    headers: {
+    'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ score })
+    }
+    await fetch('/game-over', request);
+    socket.emit('orderForArduino', 'L');
+    }
